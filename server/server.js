@@ -15,15 +15,23 @@ const db = require('./config/connection');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-//apollo server
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-  context: authMiddleware
-});
+
+// for apollo server 3.0 new syntax
+let apolloServer = null;
+async function startServer () {
+  apolloServer = new ApolloServer({
+    typeDefs,
+    resolvers,
+    context: authMiddleware
+  })
+  await apolloServer.start()
+  apolloServer.applyMiddleware({ app });
+}
+
+
 
 //apply apollo server with express app
-server.applyMiddleware({ app });
+startServer();
 
 //middleware parsing
 app.use(express.urlencoded({ extended: true }));
@@ -37,13 +45,13 @@ if (process.env.NODE_ENV === 'production') {
 // app.use(routes);
 
 //get all
-app.get('*', (req, res) => {
+app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/build/index.html'));
 });
 
 db.once('open', () => {
   app.listen(PORT, () => {
     console.log(`API server running on port ${PORT}!`);
-    console.log(`Use GraphQL at http://localhost:${PORT}${server.graphqlPath}`);
+    console.log(`Use GraphQL at http://localhost:${PORT}${apolloServer.graphqlPath}`);
   });
 });
